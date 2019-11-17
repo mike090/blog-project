@@ -35,9 +35,46 @@ class PostListView(generic.ListView):
 
 class PostDetailView(generic.DetailView,):
 	
-	def get_object(self):
-		return models.Post.objects.get(slug = self.kwargs['post'],
-			publish__year = self.kwargs['year'],
-			publish__month = self.kwargs['month'],
-			publish__day = self.kwargs['day']
+	context_object_name = 'post'
+
+	def setup(self, request, *args, **kwargs):
+		super().setup(request, *args, **kwargs)
+		
+		if request.method == 'POST':
+			self.comment_form = forms.CommentForm(data=self.request.POST)
+		else:
+			self.comment_form = forms.CommentForm()
+
+		self.blog_post = get_object_or_404(models.Post,
+			slug = kwargs['post'],
+			status = 'published',
+			publish__year = kwargs['year'],
+			publish__month = kwargs['month'],
+			publish__day = kwargs['day']
 		)
+
+		self.new_comment = None
+		self.comments = self.blog_post.comments.filter(active=True)
+
+	def get_object(self):
+		return self.blog_post
+	
+	def get_context_data(self, **kwargs):
+		
+		context = super().get_context_data(**kwargs)
+		context.update({
+			'comments': self.comments,
+			'new_comment': self.new_comment,
+			'comment_form': self.comment_form
+		})
+		return context
+
+	
+	def post(self, request, *args, **kwargs):
+		if self.comment_form.is_valid():
+			self.new_comment = self.comment_form.save(commit=False)
+			self.new_comment.post = self.blog_post
+			self.new_comment.save()
+#			self.new_comment = True
+			self.comment_form.full_clean()
+		return super().get(request, *args, **kwargs)

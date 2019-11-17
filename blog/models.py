@@ -13,14 +13,14 @@ class Post(models.Model):
 		('published', 'Опубликован'),
 	)
 
-	title = models.CharField(max_length=250)
-	slug = models.SlugField(max_length=250, unique_for_date='publish')
-	author = models.ForeignKey(User, on_delete=models.CASCADE, related_name='blog_posts')
-	body = models.TextField()
-	publish = models.DateTimeField(default=timezone.now)
-	created = models.DateTimeField(auto_now_add=True)
-	updated = models.DateTimeField(auto_now=True)
-	status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='draft')
+	title = models.CharField(max_length=250, verbose_name='Заголовок')
+	slug = models.SlugField(max_length=250, unique_for_date='publish', verbose_name='Идентификатор')
+	author = models.ForeignKey(User, on_delete=models.CASCADE, related_name='blog_posts', verbose_name='Автор')
+	body = models.TextField(verbose_name='Текст')
+	publish = models.DateTimeField(default=timezone.now, editable=False, verbose_name='Опубликован')
+	created = models.DateTimeField(auto_now_add=True, verbose_name='Создан')
+	updated = models.DateTimeField(auto_now=True, verbose_name='Обновлен')
+	status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='draft', verbose_name='Статус')
 
 	class Meta:
 		verbose_name = 'Пост'
@@ -36,3 +36,21 @@ class Post(models.Model):
 			'month': self.publish.month, 
 			'day': self.publish.day, 
 			'post': self.slug})
+
+
+class Comment(models.Model):
+	post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='comments')
+	name = models.CharField(max_length=80, verbose_name='Написал')
+	email = models.EmailField(verbose_name='Электронная почта')
+	body = models.TextField(verbose_name='Текст')
+	created = models.DateTimeField(auto_now_add=True,verbose_name='Размещен')
+	updated = models.DateTimeField(auto_now=True, verbose_name='Изменен')
+	active = models.BooleanField(default=True,verbose_name='Активный')
+
+	class Meta:
+			verbose_name = 'Комментарий'
+			verbose_name_plural = 'Комментарии'
+			ordering = ('-created',)
+
+	def __str__(self):
+		return 'Comment by {} on {}'.format(self.name, self.post)
